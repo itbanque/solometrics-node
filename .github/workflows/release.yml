@@ -1,0 +1,80 @@
+name: Release
+
+# Publish by pushing a tag that matches the version in package.json:
+#   git tag v0.1.0 && git push origin v0.1.0
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Tag matches package version
+        run: |
+          pkg_version=$(node -p "require('./package.json').version")
+          if [ "v${pkg_version}" != "${GITHUB_REF_NAME}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match package.json (${pkg_version})"
+            exit 1
+          fi
+      - run: npm ci
+      - name: Build and pack
+        run: |
+          npm run build
+          npm pack
+      - name: Smoke-test the tarball
+        run: |
+          mkdir -p /tmp/smoke && cd /tmp/smoke
+          npm init -y >/dev/null
+          npm install "$GITHUB_WORKSPACE"/solometrics-*.tgz
+          node -e "const s = require('solometrics'); console.log('cjs', s.VERSION); new s.Client('k')"
+          node --input-type=module -e "import { Client, VERSION } from 'solometrics'; console.log('esm', VERSION); new Client('k')"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: solometrics-*.tgz
+
+  publish-npm:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/solometrics
+    permissions:
+      id-token: write # npm trusted publishing + provenance, no token stored
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24 # npm >= 11.5 for trusted publishing
+          registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@v4
+        with:
+          name: package
+      - run: npm publish ./solometrics-*.tgz --access public --provenance
+
+  github-release:
+    needs: publish-npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: package
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" solometrics-*.tgz --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes

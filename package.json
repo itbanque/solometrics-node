@@ -1,0 +1,67 @@
+{
+  "name": "solometrics",
+  "version": "0.1.0",
+  "description": "Node.js / TypeScript SDK for the SneakersRadar API: retail inventory, StockX/GOAT market data, and StockX listings, costs and orders.",
+  "license": "Apache-2.0",
+  "author": "Itbanque",
+  "homepage": "https://www.sneakers.itbanque.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/itbanque/solometrics-node.git"
+  },
+  "bugs": {
+    "url": "https://github.com/itbanque/solometrics-node/issues"
+  },
+  "keywords": [
+    "sneakers",
+    "stockx",
+    "goat",
+    "sneakersradar",
+    "api",
+    "sdk"
+  ],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "NOTICE",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc",
+    "test": "vitest run",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "npm run typecheck && npm run format:check && npm test",
+    "smoke": "node scripts/smoke.mjs && node scripts/smoke.cjs",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "prettier": "^3.9.10",
+    "tsup": "^8.5.1",
+    "typescript": "~5.9.3",
+    "vitest": "^3.2.7"
+  }
+}
